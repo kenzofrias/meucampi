@@ -1,0 +1,6 @@
+{
+  "name": "MeuCampi - Gestor de Documentos Acadêmicos",
+  "description": "Aplicação web inteligente para organizar documentos acadêmicos, históricos, comprovantes de matrícula, horas complementares e PDFs de aulas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
