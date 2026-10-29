@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: './', // Garante que scripts e estilos sejam carregados corretamente no GitHub Pages
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
