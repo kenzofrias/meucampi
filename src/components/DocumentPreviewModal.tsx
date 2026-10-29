@@ -13,8 +13,12 @@ import {
   Edit2,
   Trash2,
   Printer,
+  Clock,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { DocumentItem, ACADEMIC_SCOPES } from '../types';
+import { getDeadlineInfo } from '../utils/deadlines';
 
 interface DocumentPreviewModalProps {
   document: DocumentItem | null;
@@ -33,6 +37,7 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
   const [copiedCode, setCopiedCode] = useState(false);
   const scopeConfig = ACADEMIC_SCOPES[document.scope] || ACADEMIC_SCOPES.secretaria;
+  const deadlineInfo = getDeadlineInfo(document.dueDate, document.dueDateType);
 
   const handleCopyCode = () => {
     if (document.verificationCode) {
@@ -131,11 +136,21 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
 
                   {/* Document Title Banner */}
                   <div className="mb-4">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border mb-1 ${scopeConfig.badgeBg} ${scopeConfig.badgeText} ${scopeConfig.badgeBorder}`}
-                    >
-                      {scopeConfig.label}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span
+                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold border ${scopeConfig.badgeBg} ${scopeConfig.badgeText} ${scopeConfig.badgeBorder}`}
+                      >
+                        {scopeConfig.label}
+                      </span>
+                      {deadlineInfo && (
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold border ${deadlineInfo.badgeBg} ${deadlineInfo.badgeText} ${deadlineInfo.badgeBorder}`}
+                        >
+                          <Clock className="w-3 h-3" />
+                          <span>{deadlineInfo.badgeLabel}</span>
+                        </span>
+                      )}
+                    </div>
                     <h4 className="text-base font-bold text-slate-900">
                       {document.title}
                     </h4>
@@ -150,19 +165,10 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
                   </div>
                 </div>
 
-                {/* Footer Validation Stamp */}
-                <div className="pt-4 border-t border-slate-200 flex items-end justify-between text-[10px] text-slate-500 font-mono">
-                  <div>
-                    <p className="font-semibold text-slate-700">MEUCAMPI SECURE VAULT</p>
-                    <p>Chave: {document.verificationCode || 'AUT-GEN-LOCAL-2026'}</p>
-                    <p>Arquivo: {document.fileName}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="w-12 h-12 border border-dashed border-slate-400 rounded flex items-center justify-center text-[8px] text-slate-400 uppercase font-sans mb-1 ml-auto">
-                      QR Code
-                    </div>
-                    <span>Autenticidade Verificada</span>
-                  </div>
+                {/* Footer on Sheet */}
+                <div className="pt-4 border-t border-slate-200 text-[10px] text-slate-400 font-mono flex items-center justify-between">
+                  <span>MeuCampi Doc ID: {document.id}</span>
+                  <span>Autenticação: {document.verificationCode || 'Registrado no Sistema'}</span>
                 </div>
               </div>
             )}
@@ -176,6 +182,32 @@ export const DocumentPreviewModal: React.FC<DocumentPreviewModalProps> = ({
               <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
                 Cartão de Metadados
               </h3>
+
+              {/* Deadline alert box in sidebar if configured */}
+              {deadlineInfo && (
+                <div
+                  className={`p-3 rounded-xl border space-y-1 ${deadlineInfo.badgeBg} ${deadlineInfo.badgeBorder}`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    {deadlineInfo.status === 'expired' ? (
+                      <AlertCircle className="w-4 h-4 text-rose-600" />
+                    ) : deadlineInfo.status === 'today' || deadlineInfo.status === 'urgent' ? (
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    ) : (
+                      <Clock className="w-4 h-4 text-indigo-600" />
+                    )}
+                    <span className={`text-xs font-bold ${deadlineInfo.badgeText}`}>
+                      {deadlineInfo.type === 'entrega' ? 'Prazo de Entrega' : 'Data de Expiração'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-mono font-bold text-slate-900">
+                    {deadlineInfo.dateFormatted} ({deadlineInfo.badgeLabel})
+                  </div>
+                  <div className="text-[11px] text-slate-600">
+                    {deadlineInfo.detailLabel}
+                  </div>
+                </div>
+              )}
 
               {/* Data list */}
               <dl className="space-y-2.5 text-xs">

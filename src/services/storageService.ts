@@ -1,4 +1,4 @@
-import { DocumentItem, UniversityProfile, Discipline, AcademicScope } from '../types';
+import type { DocumentItem, UniversityProfile, Discipline, AcademicScope } from '../types/index.ts';
 
 const STORAGE_KEYS = {
   PROFILE: 'meucampi_profile',
@@ -54,6 +54,8 @@ const DEFAULT_DOCUMENTS: DocumentItem[] = [
     fileType: 'pdf',
     fileSize: '1.2 MB',
     verificationCode: 'UNICAMP-2026-MAT-9941-K8F',
+    dueDate: '2026-12-31',
+    dueDateType: 'expiracao',
     createdAt: '2026-08-10T10:00:00.000Z',
     updatedAt: '2026-08-10T10:00:00.000Z',
     isDeleted: false,
@@ -106,6 +108,8 @@ const DEFAULT_DOCUMENTS: DocumentItem[] = [
     fileName: 'lista02_distribuidos_redes.pdf',
     fileType: 'pdf',
     fileSize: '850 KB',
+    dueDate: '2026-11-01',
+    dueDateType: 'entrega',
     createdAt: '2026-08-22T09:15:00.000Z',
     updatedAt: '2026-08-22T09:15:00.000Z',
     isDeleted: false,
@@ -138,6 +142,8 @@ const DEFAULT_DOCUMENTS: DocumentItem[] = [
     fileType: 'pdf',
     fileSize: '2.8 MB',
     verificationCode: 'ESTAG-2026-BR-00431',
+    dueDate: '2026-11-05',
+    dueDateType: 'expiracao',
     createdAt: '2026-08-01T11:00:00.000Z',
     updatedAt: '2026-08-01T11:00:00.000Z',
     isDeleted: false,
@@ -156,6 +162,8 @@ const DEFAULT_DOCUMENTS: DocumentItem[] = [
     fileName: 'pre_projeto_tcc_nuvem.pdf',
     fileType: 'pdf',
     fileSize: '1.9 MB',
+    dueDate: '2026-11-15',
+    dueDateType: 'entrega',
     createdAt: '2026-08-15T15:00:00.000Z',
     updatedAt: '2026-08-15T15:00:00.000Z',
     isDeleted: false,
@@ -244,6 +252,22 @@ export const storageService = {
       const data = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
       if (data) {
         docs = JSON.parse(data);
+
+        // Auto-enrich sample documents if they miss due dates from previous version
+        let needsMigration = false;
+        docs = docs.map((d) => {
+          if (!d.dueDate) {
+            const def = DEFAULT_DOCUMENTS.find((dd) => dd.id === d.id);
+            if (def && def.dueDate) {
+              needsMigration = true;
+              return { ...d, dueDate: def.dueDate, dueDateType: def.dueDateType };
+            }
+          }
+          return d;
+        });
+        if (needsMigration) {
+          this.saveDocuments(docs);
+        }
       } else {
         docs = DEFAULT_DOCUMENTS;
         this.saveDocuments(docs);

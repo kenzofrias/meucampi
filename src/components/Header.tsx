@@ -1,23 +1,28 @@
 import React from 'react';
 import { GraduationCap, Edit3, BookOpen, Trash2, Plus, Sparkles } from 'lucide-react';
-import { UniversityProfile } from '../types';
+import { UniversityProfile, DocumentItem } from '../types';
+import { RemindersPopover } from './RemindersPopover';
 
 interface HeaderProps {
   profile: UniversityProfile;
   trashCount: number;
+  documents: DocumentItem[];
   onOpenProfileModal: () => void;
   onOpenDisciplinesModal: () => void;
   onOpenTrashModal: () => void;
   onOpenNewDocumentModal: () => void;
+  onOpenDocument: (doc: DocumentItem) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   profile,
   trashCount,
+  documents,
   onOpenProfileModal,
   onOpenDisciplinesModal,
   onOpenTrashModal,
   onOpenNewDocumentModal,
+  onOpenDocument,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-2xs">
@@ -63,6 +68,12 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Quick Action Navigation Buttons */}
           <div className="flex items-center gap-2 shrink-0">
+            {/* Reminders / Prazos Acadêmicos Popover */}
+            <RemindersPopover
+              documents={documents}
+              onOpenDocument={onOpenDocument}
+            />
+
             {/* Disciplines Management button */}
             <button
               onClick={onOpenDisciplinesModal}

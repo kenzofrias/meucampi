@@ -17,6 +17,8 @@ import { DocumentPreviewModal } from './components/DocumentPreviewModal';
 import { ProfileEditModal } from './components/ProfileEditModal';
 import { DisciplinesModal } from './components/DisciplinesModal';
 import { TrashModal } from './components/TrashModal';
+import { DeadlineAlertBanner } from './components/DeadlineAlertBanner';
+import { getDeadlineInfo } from './utils/deadlines';
 import {
   FileText,
   Plus,
@@ -38,6 +40,7 @@ export default function App() {
   const [selectedScope, setSelectedScope] = useState<AcademicScope | 'all'>('all');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedDisciplineId, setSelectedDisciplineId] = useState<string | null>(null);
+  const [filterDeadline, setFilterDeadline] = useState<'all' | 'with_deadline' | 'urgent'>('all');
 
   // Modal States
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -82,6 +85,22 @@ export default function App() {
     return counts;
   }, [activeDocuments, availableSemesters]);
 
+  // Deadline Counts for Filters
+  const deadlineCounts = useMemo(() => {
+    let totalWithDeadline = 0;
+    let urgent = 0;
+    activeDocuments.forEach((doc) => {
+      if (doc.dueDate) {
+        totalWithDeadline++;
+        const info = getDeadlineInfo(doc.dueDate, doc.dueDateType);
+        if (info && info.isUrgent) {
+          urgent++;
+        }
+      }
+    });
+    return { totalWithDeadline, urgent };
+  }, [activeDocuments]);
+
   // Unique available tags from active documents
   const allAvailableTags = useMemo(() => {
     const tagsSet = new Set<string>();
@@ -114,6 +133,16 @@ export default function App() {
         return false;
       }
 
+      // Deadline filter
+      if (filterDeadline === 'with_deadline' && !doc.dueDate) {
+        return false;
+      }
+      if (filterDeadline === 'urgent') {
+        if (!doc.dueDate) return false;
+        const info = getDeadlineInfo(doc.dueDate, doc.dueDateType);
+        if (!info || !info.isUrgent) return false;
+      }
+
       // Text search
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -137,6 +166,7 @@ export default function App() {
     selectedScope,
     selectedDisciplineId,
     selectedTag,
+    filterDeadline,
     searchQuery,
   ]);
 
@@ -216,15 +246,18 @@ export default function App() {
     setSelectedTag(null);
     setSelectedDisciplineId(null);
     setSearchQuery('');
+    setFilterDeadline('all');
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
       
-      {/* 1. Header with Realidade Universitária */}
+      {/* 1. Header with Realidade Universitária & Notificações de Prazos */}
       <Header
         profile={profile}
         trashCount={trashDocuments.length}
+        documents={activeDocuments}
+        onOpenDocument={(doc) => setPreviewingDocument(doc)}
         onOpenProfileModal={() => setIsProfileModalOpen(true)}
         onOpenDisciplinesModal={() => setIsDisciplinesModalOpen(true)}
         onOpenTrashModal={() => setIsTrashModalOpen(true)}
@@ -279,6 +312,13 @@ export default function App() {
           </div>
         </div>
 
+        {/* Notificação Local Visual: Banner de Prazos Críticos */}
+        <DeadlineAlertBanner
+          documents={activeDocuments}
+          onOpenDocument={(doc) => setPreviewingDocument(doc)}
+          onFilterDeadlines={() => setFilterDeadline('urgent')}
+        />
+
         {/* 3. Barra de Pesquisa Global com Chips de Filtro */}
         <SearchAndChips
           searchQuery={searchQuery}
@@ -293,6 +333,9 @@ export default function App() {
           selectedDisciplineId={selectedDisciplineId}
           onSelectDisciplineId={setSelectedDisciplineId}
           disciplinesList={disciplines.map((d) => ({ id: d.id, name: d.name }))}
+          filterDeadline={filterDeadline}
+          onSelectFilterDeadline={setFilterDeadline}
+          deadlineCounts={deadlineCounts}
         />
 
         {/* 4. Feed de Cards com Badges Coloridos */}

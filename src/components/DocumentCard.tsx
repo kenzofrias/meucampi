@@ -9,8 +9,12 @@ import {
   User,
   ShieldCheck,
   Tag,
+  Clock,
+  AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 import { DocumentItem, ACADEMIC_SCOPES } from '../types';
+import { getDeadlineInfo } from '../utils/deadlines';
 
 interface DocumentCardProps {
   document: DocumentItem;
@@ -28,6 +32,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
   onTagClick,
 }) => {
   const scopeConfig = ACADEMIC_SCOPES[document.scope] || ACADEMIC_SCOPES.secretaria;
+  const deadlineInfo = getDeadlineInfo(document.dueDate, document.dueDateType);
 
   return (
     <div className="group relative flex flex-col justify-between p-5 bg-white rounded-2xl border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all duration-200">
@@ -59,6 +64,26 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
         >
           {document.title}
         </h3>
+
+        {/* Indicador Visual do Prazo & Lembrete Acadêmico */}
+        {deadlineInfo && (
+          <div
+            className={`mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${deadlineInfo.badgeBg} ${deadlineInfo.badgeText} ${deadlineInfo.badgeBorder}`}
+            title={deadlineInfo.detailLabel}
+          >
+            {deadlineInfo.status === 'expired' ? (
+              <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+            ) : deadlineInfo.status === 'today' ? (
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+            ) : deadlineInfo.status === 'urgent' ? (
+              <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+            ) : (
+              <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            )}
+            <span>{deadlineInfo.badgeLabel}</span>
+            <span className="text-[10px] opacity-75 font-mono">({deadlineInfo.dateFormatted})</span>
+          </div>
+        )}
 
         {/* Discipline and Professor Context */}
         {(document.disciplineName || document.professorName) && (

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, X, Filter, Tag, BookOpen } from 'lucide-react';
+import { Search, X, Filter, Tag, BookOpen, Clock, AlertTriangle } from 'lucide-react';
 import { AcademicScope, ACADEMIC_SCOPES } from '../types';
 
 interface SearchAndChipsProps {
@@ -15,6 +15,9 @@ interface SearchAndChipsProps {
   selectedDisciplineId: string | null;
   onSelectDisciplineId: (id: string | null) => void;
   disciplinesList: Array<{ id: string; name: string }>;
+  filterDeadline?: 'all' | 'with_deadline' | 'urgent';
+  onSelectFilterDeadline?: (filter: 'all' | 'with_deadline' | 'urgent') => void;
+  deadlineCounts?: { totalWithDeadline: number; urgent: number };
 }
 
 export const SearchAndChips: React.FC<SearchAndChipsProps> = ({
@@ -30,12 +33,16 @@ export const SearchAndChips: React.FC<SearchAndChipsProps> = ({
   selectedDisciplineId,
   onSelectDisciplineId,
   disciplinesList,
+  filterDeadline = 'all',
+  onSelectFilterDeadline,
+  deadlineCounts = { totalWithDeadline: 0, urgent: 0 },
 }) => {
   const isAnyFilterActive =
     searchQuery.trim() !== '' ||
     selectedScope !== 'all' ||
     selectedTag !== null ||
-    selectedDisciplineId !== null;
+    selectedDisciplineId !== null ||
+    filterDeadline !== 'all';
 
   return (
     <div className="space-y-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-2xs">
@@ -124,6 +131,44 @@ export const SearchAndChips: React.FC<SearchAndChipsProps> = ({
             </button>
           );
         })}
+
+        {/* Separator */}
+        {onSelectFilterDeadline && (deadlineCounts.totalWithDeadline > 0 || deadlineCounts.urgent > 0) && (
+          <div className="h-4 w-px bg-slate-200 mx-1 shrink-0" />
+        )}
+
+        {/* Quick Deadline Filter Chips */}
+        {onSelectFilterDeadline && deadlineCounts.totalWithDeadline > 0 && (
+          <button
+            onClick={() =>
+              onSelectFilterDeadline(filterDeadline === 'with_deadline' ? 'all' : 'with_deadline')
+            }
+            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 border flex items-center gap-1.5 ${
+              filterDeadline === 'with_deadline'
+                ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                : 'bg-indigo-50/70 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5" />
+            <span>Com Prazos ({deadlineCounts.totalWithDeadline})</span>
+          </button>
+        )}
+
+        {onSelectFilterDeadline && deadlineCounts.urgent > 0 && (
+          <button
+            onClick={() =>
+              onSelectFilterDeadline(filterDeadline === 'urgent' ? 'all' : 'urgent')
+            }
+            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 border flex items-center gap-1.5 ${
+              filterDeadline === 'urgent'
+                ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+            }`}
+          >
+            <AlertTriangle className="w-3.5 h-3.5" />
+            <span>Prazos Urgentes ({deadlineCounts.urgent})</span>
+          </button>
+        )}
       </div>
 
       {/* Tag Chips and Clear Filter Row */}

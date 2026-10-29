@@ -11,12 +11,15 @@ import {
   Tag,
   ShieldCheck,
   Plus,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 import {
   DocumentItem,
   AcademicScope,
   ACADEMIC_SCOPES,
   Discipline,
+  DueDateType,
 } from '../types';
 
 interface DocumentFormModalProps {
@@ -61,10 +64,25 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
   const [verificationCode, setVerificationCode] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
+  // Deadline & Reminders state
+  const [enableDeadline, setEnableDeadline] = useState(false);
+  const [dueDate, setDueDate] = useState('');
+  const [dueDateType, setDueDateType] = useState<DueDateType>('entrega');
+
   // Inline Quick Add Discipline state
   const [showAddDiscipline, setShowAddDiscipline] = useState(false);
   const [newDiscName, setNewDiscName] = useState('');
   const [newDiscProf, setNewDiscProf] = useState('');
+
+  // Quick date helper
+  const handleSetQuickDate = (daysAhead: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + daysAhead);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    setDueDate(`${year}-${month}-${day}`);
+  };
 
   // Initialize or reset form
   useEffect(() => {
@@ -81,6 +99,9 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
       setFileSize(documentToEdit.fileSize);
       setFileDataUrl(documentToEdit.fileDataUrl);
       setVerificationCode(documentToEdit.verificationCode || '');
+      setDueDate(documentToEdit.dueDate || '');
+      setDueDateType(documentToEdit.dueDateType || 'entrega');
+      setEnableDeadline(Boolean(documentToEdit.dueDate));
       setStep(1);
     } else {
       setTitle('');
@@ -95,6 +116,9 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
       setFileSize('1.2 MB');
       setFileDataUrl(undefined);
       setVerificationCode('');
+      setDueDate('');
+      setDueDateType('entrega');
+      setEnableDeadline(false);
       setStep(1);
     }
   }, [documentToEdit, defaultSemester, isOpen]);
@@ -158,6 +182,7 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
   const handleCreateDisciplineInline = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDiscName.trim()) return;
+
     const created = onQuickAddDiscipline(newDiscName.trim(), newDiscProf.trim());
     setDisciplineId(created.id);
     setProfessorName(created.professorName);
@@ -186,6 +211,8 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
       fileSize: fileName ? fileSize : (documentToEdit ? documentToEdit.fileSize : '1.4 MB'),
       fileDataUrl: fileDataUrl || documentToEdit?.fileDataUrl,
       verificationCode: verificationCode.trim() || undefined,
+      dueDate: enableDeadline && dueDate ? dueDate : undefined,
+      dueDateType: enableDeadline && dueDate ? dueDateType : undefined,
       sampleContent:
         documentToEdit?.sampleContent ||
         `${title.toUpperCase()}\n\nDocumento cadastrado em ${new Date().toLocaleDateString('pt-BR')}.\nÂmbito: ${ACADEMIC_SCOPES[scope].label}\nPeríodo: ${semester}\n${description || ''}`,
@@ -256,27 +283,27 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
           <div className="flex items-center gap-2">
             <span
               className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                step >= 3 ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
+                step === 3 ? 'bg-slate-900 text-white' : 'bg-slate-200 text-slate-500'
               }`}
             >
               3
             </span>
             <span className={step === 3 ? 'text-slate-900' : 'text-slate-500'}>
-              Mapeamento & Tags
+              Prazos & Detalhes
             </span>
           </div>
         </div>
 
-        {/* Multi-Step Body */}
+        {/* Modal Form Body */}
         <form onSubmit={handleSubmit} className="p-6">
           
-          {/* STEP 1: Arquivo e Título */}
+          {/* STEP 1: Upload Arquivo & Título */}
           {step === 1 && (
             <div className="space-y-4 animate-in fade-in">
-              {/* Dropzone */}
+              {/* Drag & Drop Upload Zone */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1.5">
-                  {documentToEdit ? 'Substituir Arquivo / Foto (Opcional)' : 'Arquivo do Documento (PDF ou Foto) *'}
+                <label className="text-xs font-semibold text-slate-700 block mb-1">
+                  Arquivo do Documento (PDF ou Imagem)
                 </label>
                 <div
                   onDragOver={(e) => {
@@ -291,32 +318,32 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                       handleFile(e.dataTransfer.files[0]);
                     }
                   }}
-                  className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
+                  className={`border-2 border-dashed rounded-xl p-5 text-center transition-colors cursor-pointer ${
                     isDragging
-                      ? 'border-indigo-500 bg-indigo-50/50'
+                      ? 'border-indigo-600 bg-indigo-50/50'
+                      : fileName
+                      ? 'border-emerald-300 bg-emerald-50/30'
                       : 'border-slate-300 hover:border-slate-400 bg-slate-50/50'
                   }`}
                 >
                   <input
                     type="file"
-                    accept=".pdf,.png,.jpg,.jpeg,.webp"
+                    id="file-upload"
+                    accept=".pdf,image/*,.doc,.docx"
                     onChange={handleFileChange}
                     className="hidden"
-                    id="doc-file-upload-input"
                   />
-                  <label htmlFor="doc-file-upload-input" className="cursor-pointer block">
-                    <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-2" />
+                  <label htmlFor="file-upload" className="cursor-pointer block">
                     {fileName ? (
-                      <div className="text-xs font-semibold text-slate-800">
-                        <span className="text-emerald-700 block">Arquivo Selecionado:</span>
-                        <span className="text-slate-900 font-mono">{fileName}</span>{' '}
-                        <span className="text-slate-400 font-mono">({fileSize})</span>
-                        <p className="text-[10px] text-slate-500 mt-1">Clique para trocar</p>
+                      <div className="flex items-center justify-center gap-2 text-emerald-700 text-xs font-semibold">
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                        <span>Arquivo selecionado: {fileName} ({fileSize})</span>
                       </div>
                     ) : (
                       <>
+                        <UploadCloud className="w-8 h-8 text-slate-400 mx-auto mb-1.5" />
                         <p className="text-xs font-semibold text-slate-700">
-                          Clique para selecionar ou arraste o PDF ou Foto aqui
+                          Clique para selecionar ou arraste o arquivo aqui
                         </p>
                         <p className="text-[11px] text-slate-400 mt-0.5">
                           Suporta comprovantes, históricos, apostilas em PDF ou imagens
@@ -452,17 +479,133 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                   onClick={() => setStep(3)}
                   className="flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition-colors"
                 >
-                  <span>Avançar: Disciplina & Tags</span>
+                  <span>Avançar: Prazos & Detalhes</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* STEP 3: Disciplina, Professor, Descrição & Tags */}
+          {/* STEP 3: Prazos, Disciplina, Professor, Descrição & Tags */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in">
               
+              {/* Seção Nova: Controle de Prazo & Lembrete Acadêmico */}
+              <div className="p-3.5 bg-slate-50/90 rounded-xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                      <Clock className="w-3.5 h-3.5" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-800 block">
+                        Controle de Prazo & Lembretes
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Atividade para entrega ou documento com data de expiração
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={enableDeadline}
+                      onChange={(e) => {
+                        setEnableDeadline(e.target.checked);
+                        if (e.target.checked && !dueDate) {
+                          handleSetQuickDate(7); // sugere 7 dias por padrão
+                        }
+                      }}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+                  </label>
+                </div>
+
+                {enableDeadline && (
+                  <div className="pt-2 border-t border-slate-200 space-y-3 animate-in fade-in">
+                    {/* Escolha do Tipo de Prazo */}
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                        Finalidade do Prazo:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <button
+                          type="button"
+                          onClick={() => setDueDateType('entrega')}
+                          className={`p-2 rounded-lg border text-left transition-all ${
+                            dueDateType === 'entrega'
+                              ? 'border-indigo-600 bg-white text-indigo-950 font-semibold ring-1 ring-indigo-500 shadow-2xs'
+                              : 'border-slate-200 bg-white/60 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          <div className="font-semibold text-xs">📅 Prazo de Entrega</div>
+                          <div className="text-[10px] text-slate-400">Trabalho, Lista, TCC</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDueDateType('expiracao')}
+                          className={`p-2 rounded-lg border text-left transition-all ${
+                            dueDateType === 'expiracao'
+                              ? 'border-indigo-600 bg-white text-indigo-950 font-semibold ring-1 ring-indigo-500 shadow-2xs'
+                              : 'border-slate-200 bg-white/60 text-slate-600 hover:bg-white'
+                          }`}
+                        >
+                          <div className="font-semibold text-xs">📜 Data de Expiração</div>
+                          <div className="text-[10px] text-slate-400">Certificado, Matrícula</div>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Campo de Data */}
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                        Data Limite / Vencimento:
+                      </label>
+                      <input
+                        type="date"
+                        value={dueDate}
+                        onChange={(e) => setDueDate(e.target.value)}
+                        className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20"
+                      />
+                    </div>
+
+                    {/* Atalhos Rápidos de Prazo */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] text-slate-400 font-medium">Atalhos rápidos:</span>
+                      <button
+                        type="button"
+                        onClick={() => handleSetQuickDate(3)}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-white border border-slate-200 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+                      >
+                        +3 dias
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetQuickDate(7)}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-white border border-slate-200 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+                      >
+                        +7 dias (1 sem)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetQuickDate(15)}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-white border border-slate-200 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+                      >
+                        +15 dias
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSetQuickDate(30)}
+                        className="px-2 py-0.5 text-[10px] font-medium bg-white border border-slate-200 hover:bg-slate-100 rounded text-slate-700 transition-colors"
+                      >
+                        +30 dias
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Disciplina Selector */}
               <div>
                 <div className="flex items-center justify-between mb-1">
@@ -543,7 +686,7 @@ export const DocumentFormModal: React.FC<DocumentFormModalProps> = ({
                   rows={2}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Adicione observações, prazos de entrega ou detalhes para recordar..."
+                  placeholder="Adicione observações, detalhes para recordar..."
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-slate-900/10 focus:border-slate-400 focus:bg-white text-slate-900 resize-none"
                 />
               </div>

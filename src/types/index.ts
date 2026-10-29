@@ -81,6 +81,8 @@ export interface Discipline {
 
 export type FileType = 'pdf' | 'image' | 'doc';
 
+export type DueDateType = 'entrega' | 'expiracao';
+
 export interface DocumentItem {
   id: string;
   title: string;
@@ -97,6 +99,8 @@ export interface DocumentItem {
   fileDataUrl?: string; // base64 or preview data
   sampleContent?: string; // preview text for visual simulation
   verificationCode?: string;
+  dueDate?: string; // Formato YYYY-MM-DD para controle de prazos e vencimentos
+  dueDateType?: DueDateType; // 'entrega' (trabalho/lista/TCC) ou 'expiracao' (certificado/matrícula)
   createdAt: string;
   updatedAt: string;
   isDeleted: boolean;
