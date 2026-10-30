@@ -384,3 +384,12 @@ npm run build
 O arquivo `.github/workflows/deploy.yml` configura a publicação automática no **GitHub Pages**:
 - Dispara automaticamente em cada `push` na branch `main` (ou manualmente via `workflow_dispatch`).
 - Configura o ambiente com **Node.js 22**, instala dependências com `npm install --legacy-peer-deps`, compila os ativos estáticos com `npm run build` (com `base: './'` configurado no `vite.config.ts`) e publica o diretório `./dist` no GitHub Pages.
+
+---
+
+<div align="center">
+  
+  **Obrigado pela visita!**  
+  [Kenzo Friás](https://www.github.com/kenzofrias) © 2026
+  
+</div>
